@@ -1,9 +1,10 @@
 defmodule Ueberauth.Strategy.Marvin do
+	require Logger
 	@moduledoc """
 	Provides an Ueberauth strategy for authenticating with 42's intranet.
 	"""
 
-	use Ueberauth.Strategy, uid_field: :uid,
+	use Ueberauth.Strategy, uid_field: :id,
                           default_scope: "",
                           oauth2_module: Ueberauth.Strategy.Marvin.OAuth
 
@@ -17,6 +18,18 @@ defmodule Ueberauth.Strategy.Marvin do
 
 	def handle_request!(conn) do
 		scopes = conn.params["scope"] || option(conn, :default_scope)
+		params =
+      [scope: scopes]
+      |> with_optional(:hd, conn)
+      |> with_optional(:prompt, conn)
+      |> with_optional(:access_type, conn)
+      |> with_param(:access_type, conn)
+      |> with_param(:prompt, conn)
+      |> with_param(:state, conn)
+
+    opts = [redirect_uri: callback_url(conn)]
+
+    redirect!(conn, Ueberauth.Strategy.Marvin.OAuth.authorize_url!(params, opts))
 	end
 
 	@doc """
@@ -104,6 +117,36 @@ defmodule Ueberauth.Strategy.Marvin do
         user: conn.private.marvin_user
       }
     }
+  end
+
+	defp fetch_user(conn, token) do
+    conn = put_private(conn, :marvin_token, token)
+
+    path = "https://api.intra.42.fr/v2/me"
+    resp = Ueberauth.Strategy.Marvin.OAuth.get(token, path)
+
+    case resp do
+      {:ok, %OAuth2.Response{status_code: 401, body: _body}} ->
+        set_errors!(conn, [error("token", "unauthorized")])
+      {:ok, %OAuth2.Response{status_code: status_code, body: user}} when status_code in 200..399 ->
+        put_private(conn, :marvin_user, user)
+      {:error, %OAuth2.Response{status_code: status_code}} ->
+        set_errors!(conn, [error("OAuth2", status_code)])
+      {:error, %OAuth2.Error{reason: reason}} ->
+        set_errors!(conn, [error("OAuth2", reason)])
+    end
+  end
+
+	defp with_param(opts, key, conn) do
+    if value = conn.params[to_string(key)], do: Keyword.put(opts, key, value), else: opts
+  end
+
+  defp with_optional(opts, key, conn) do
+    if option(conn, key), do: Keyword.put(opts, key, option(conn, key)), else: opts
+  end
+
+  defp option(conn, key) do
+    Keyword.get(options(conn), key, Keyword.get(default_options(), key))
   end
 
 end

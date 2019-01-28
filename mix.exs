@@ -9,6 +9,7 @@ defmodule UeberauthMarvin.MixProject do
       app: :ueberauth_marvin,
       version: @version,
 			name: "Ueberauth Marvin Strategy",
+			package: package(),
       elixir: "~> 1.7",
 			build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,

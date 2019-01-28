@@ -27,14 +27,14 @@ defmodule Ueberauth.Strategy.Marvin.OAuth do
    """
 
 	 def client(opts \\ []) do
-		 config = Application.get_env(:ueberauth, Ueberauth.Strategy.Google.OAuth)
+		 config = Application.get_env(:ueberauth, Ueberauth.Strategy.Marvin.OAuth)
 
-		 client_opts =
+		 opts =
 			 @defaults
 			 |> Keyword.merge(config)
 			 |> Keyword.merge(opts)
 
-		 OAuth2.Client.new(client_opts)
+		 OAuth2.Client.new(opts)
 	 end
 
 	 @doc """
