@@ -93,26 +93,29 @@ defmodule Ueberauth.Strategy.Marvin do
   """
   def info(conn) do
     user = conn.private.marvin_user
-		user
-    # %Info{
-    #   email: user["email"],
-    #   first_name: user["given_name"],
-    #   image: user["picture"],
-    #   last_name: user["family_name"],
-    #   name: user["name"],
-    #   urls: %{
-    #     profile: user["profile"],
-    #     website: user["hd"]
-    #   }
-    # }
+    %Info{
+			nickname: user["login"],
+			first_name: user["first_name"],
+      last_name: user["last_name"],
+      email: user["email"],
+			name: user["displayname"],
+			image: user["image_url"],
+			location: user["location"],
+			phone: user["phone"],
+    }
   end
 
 	@doc """
   Stores the raw information (including the token) obtained from the google callback.
   """
   def extra(conn) do
+		user = conn.private.marvin_user
     %Extra{
       raw_info: %{
+				id: user["id"],
+				pool_month: user["pool_month"],
+				pool_year: user["pool_year"],
+				wallet: user["wallet"],
         token: conn.private.marvin_token,
         user: conn.private.marvin_user
       }
@@ -136,6 +139,8 @@ defmodule Ueberauth.Strategy.Marvin do
         set_errors!(conn, [error("OAuth2", reason)])
     end
   end
+
+	# Add fetch roles
 
 	defp with_param(opts, key, conn) do
     if value = conn.params[to_string(key)], do: Keyword.put(opts, key, value), else: opts
